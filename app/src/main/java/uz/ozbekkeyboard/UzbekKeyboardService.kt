@@ -236,6 +236,6 @@ class UzbekKeyboardService : InputMethodService() {
 
     private fun isSentenceStart(): Boolean {
         val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString().orEmpty()
-        return before.isEmpty() || before.lastOrNull()?.let { it == '.' || it == '!' || it == '?' || it == '\\n' } == true
+        return before.isEmpty() || before.lastOrNull()?.let { it == '.' || it == '!' || it == '?' || it == '\n' } == true
     }
 }
