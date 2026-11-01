@@ -54,8 +54,8 @@ class UzbekKeyboardService : InputMethodService() {
             textSize = 12f; setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL; setPadding(8, 0, 0, 0)
         }, LinearLayout.LayoutParams(0, dp(42), 1f))
-        toolbar.addView(keyButton("←", p.special, 18) { currentInputConnection?.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_LEFT)) }, LinearLayout.LayoutParams(dp(38), dp(44)))
-        toolbar.addView(keyButton("→", p.special, 18) { currentInputConnection?.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_RIGHT)) }, LinearLayout.LayoutParams(dp(38), dp(44)))
+        toolbar.addView(keyButton("←", p.special, 18) { moveCursor(android.view.KeyEvent.KEYCODE_DPAD_LEFT) }, LinearLayout.LayoutParams(dp(38), dp(44)))
+        toolbar.addView(keyButton("→", p.special, 18) { moveCursor(android.view.KeyEvent.KEYCODE_DPAD_RIGHT) }, LinearLayout.LayoutParams(dp(38), dp(44)))
         toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(dp(42), dp(44)))
         toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(dp(42), dp(44)))
         toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 20) {
@@ -125,7 +125,7 @@ class UzbekKeyboardService : InputMethodService() {
             "?123" -> symbols = true
             "ABC" -> { symbols = false; emojiPage = false }
             "☻" -> emojiPage = true
-            "space" -> { ic.commitText(" ", 1); if (!capsLock) upper = false }
+            "space" -> { ic.commitText(" ", 1); if (!capsLock) upper = isSentenceStart() }
             else -> {
                 ic.commitText(if (upper || capsLock) value.uppercase() else value, 1)
                 if (!capsLock) upper = isSentenceStart()
@@ -205,6 +205,12 @@ class UzbekKeyboardService : InputMethodService() {
         }
         popup.elevation = dp(8).toFloat()
         popup.showAsDropDown(anchor, 0, -dp(105))
+    }
+
+    private fun moveCursor(keyCode: Int) {
+        val ic = currentInputConnection ?: return
+        ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+        ic.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
     }
 
     private fun deleteOneCodePoint() {
