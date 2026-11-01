@@ -4,6 +4,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
@@ -11,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 
@@ -52,8 +54,10 @@ class UzbekKeyboardService : InputMethodService() {
             textSize = 12f; setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL; setPadding(8, 0, 0, 0)
         }, LinearLayout.LayoutParams(0, dp(42), 1f))
-        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(dp(46), dp(44)))
-        toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(dp(46), dp(44)))
+        toolbar.addView(keyButton("←", p.special, 18) { currentInputConnection?.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_LEFT)) }, LinearLayout.LayoutParams(dp(38), dp(44)))
+        toolbar.addView(keyButton("→", p.special, 18) { currentInputConnection?.sendKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, android.view.KeyEvent.KEYCODE_DPAD_RIGHT)) }, LinearLayout.LayoutParams(dp(38), dp(44)))
+        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(dp(42), dp(44)))
+        toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(dp(42), dp(44)))
         toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 20) {
             upper = !upper
             refresh()
@@ -92,9 +96,12 @@ class UzbekKeyboardService : InputMethodService() {
                 else -> 1f
             }
             val special = value in listOf("⇧","⌫","?123","ABC","↵","space","☻")
-            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20) {
+            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20, {
                 action(value)
-            }, LinearLayout.LayoutParams(0, dp(height), weight).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) })
+            }, {
+                if (value.length == 1 && value[0].isLetter()) showAlternates(it, value)
+                else if (value == "⌫") deleteWord()
+            }), LinearLayout.LayoutParams(0, dp(height), weight).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) })
         }
         root.addView(line)
     }
@@ -109,7 +116,7 @@ class UzbekKeyboardService : InputMethodService() {
         val ic = currentInputConnection ?: return
         when (value) {
             "⇧" -> { if (upper) capsLock = !capsLock else upper = true }
-            "⌫" -> ic.deleteSurroundingText(1, 0)
+            "⌫" -> deleteOneCodePoint()
             "↵" -> {
                 val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
                 if (action != null && action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED)
@@ -121,7 +128,7 @@ class UzbekKeyboardService : InputMethodService() {
             "space" -> { ic.commitText(" ", 1); if (!capsLock) upper = false }
             else -> {
                 ic.commitText(if (upper || capsLock) value.uppercase() else value, 1)
-                if (!capsLock) upper = false
+                if (!capsLock) upper = isSentenceStart()
             }
         }
         refresh()
@@ -142,7 +149,7 @@ class UzbekKeyboardService : InputMethodService() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun keyButton(label: String, color: Int, size: Int, click: () -> Unit) =
+    private fun keyButton(label: String, color: Int, size: Int, click: () -> Unit, longClick: ((View) -> Unit)? = null) =
         TextView(this).apply {
             text = label
             textSize = size.toFloat()
@@ -158,6 +165,71 @@ class UzbekKeyboardService : InputMethodService() {
                 cornerRadius = dp(11).toFloat()
                 setStroke(dp(1), if (themeIndex == 1) Color.rgb(75,82,96) else Color.rgb(215,221,231))
             }
-            setOnClickListener { click() }
+            setOnClickListener {
+                performHapticFeedback(android.view.HapticFeedbackConstants.KEYBOARD_TAP)
+                click()
+            }
+            setOnLongClickListener {
+                performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+                longClick?.invoke(this)
+                longClick != null
+            }
         }
+
+    private fun showAlternates(anchor: View, value: String) {
+        val choices = when (value.lowercase()) {
+            "o" -> listOf("o‘","oʻ","ö","ō","ø")
+            "g" -> listOf("g‘","gʻ","ğ","ġ")
+            "c" -> listOf("ç","č","ć")
+            "s" -> listOf("ş","š","ś")
+            "a" -> listOf("ä","á","à","â","ā")
+            "e" -> listOf("ë","é","è","ê","ē")
+            "i" -> listOf("ï","í","ì","î","ī")
+            "u" -> listOf("ü","ú","ù","û","ū")
+            "n" -> listOf("ñ","ń")
+            else -> return
+        }
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(5), dp(4), dp(5), dp(4))
+            setBackgroundColor(palette.background)
+        }
+        val popup = PopupWindow(row, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true)
+        choices.forEach { choice ->
+            row.addView(keyButton(if (upper || capsLock) choice.uppercase() else choice, palette.key, 19, {
+                currentInputConnection?.commitText(if (upper || capsLock) choice.uppercase() else choice, 1)
+                if (!capsLock) upper = false
+                popup.dismiss()
+                refresh()
+            }), LinearLayout.LayoutParams(dp(48), dp(48)).apply { setMargins(dp(2),0,dp(2),0) })
+        }
+        popup.elevation = dp(8).toFloat()
+        popup.showAsDropDown(anchor, 0, -dp(105))
+    }
+
+    private fun deleteOneCodePoint() {
+        val ic = currentInputConnection ?: return
+        if (Build.VERSION.SDK_INT >= 24) {
+            ic.deleteSurroundingTextInCodePoints(1, 0)
+        } else {
+            val before = ic.getTextBeforeCursor(2, 0)?.toString().orEmpty()
+            if (before.length >= 2 && Character.isSurrogatePair(before[before.length-2], before.last()))
+                ic.deleteSurroundingText(2, 0)
+            else ic.deleteSurroundingText(1, 0)
+        }
+    }
+
+    private fun deleteWord() {
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(100, 0)?.toString().orEmpty()
+        val trimmed = before.trimEnd()
+        val word = trimmed.takeLastWhile { !it.isWhitespace() }
+        val count = before.length - trimmed.length + word.length
+        if (count > 0) ic.deleteSurroundingText(count, 0)
+    }
+
+    private fun isSentenceStart(): Boolean {
+        val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString().orEmpty()
+        return before.isEmpty() || before.lastOrNull()?.let { it == '.' || it == '!' || it == '?' || it == '\\n' } == true
+    }
 }
