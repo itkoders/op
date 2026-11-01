@@ -39,42 +39,42 @@ class UzbekKeyboardService : InputMethodService() {
         val p = palette
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(4, 5, 4, 7)
+            setPadding(3, 5, 3, 8)
             setBackgroundColor(p.background)
         }
         val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         toolbar.addView(TextView(this).apply {
-            text = "O‘ZBEK  •  " + listOf("CLASSIC","DARK","NEON","MINT")[themeIndex]
+            text = "O‘ZBEK KEYBOARD  •  " + listOf("CLASSIC","DARK","NEON","MINT")[themeIndex]
             textSize = 12f; setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL; setPadding(8, 0, 0, 0)
-        }, LinearLayout.LayoutParams(0, 38, 1f))
-        toolbar.addView(keyButton("📋", p.special, 15) { pasteClipboard() }, LinearLayout.LayoutParams(43, 36))
-        toolbar.addView(keyButton("🎨", p.special, 16) { cycleTheme() }, LinearLayout.LayoutParams(43, 36))
-        toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 17) {
+        }, LinearLayout.LayoutParams(0, 44, 1f))
+        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(48, 42))
+        toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(48, 42))
+        toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 20) {
             upper = !upper
             refresh()
-        }, LinearLayout.LayoutParams(43, 36))
+        }, LinearLayout.LayoutParams(48, 42))
         root.addView(toolbar)
 
         if (emojiPage) {
             val emojis = listOf("😀","😂","🥰","😍","😎","😭","😊","😘","👍","🙏","❤️","🔥","🎉","✨","💯","🤝","👏","💙","🌹","🤣")
-            emojis.chunked(5).forEach { row -> addRow(root, row, 43) { press(it) } }
-            addRow(root, listOf("ABC","space","⌫","↵"), 44) { press(it) }
+            emojis.chunked(5).forEach { row -> addRow(root, row, 54) { press(it) } }
+            addRow(root, listOf("ABC","space","⌫","↵"), 56) { press(it) }
             return root
         }
 
         val rows = if (!symbols) listOf(
-            listOf("q","e","r","t","y","u","i","o","p"),
-            listOf("a","s","d","f","g","h","j","k","l"),
-            listOf("⇧","z","x","v","b","n","m","oʻ","gʻ","⌫"),
-            listOf("?123",",","☻","space","sh","ch","ng",".","↵")
+            listOf("q","w","e","r","t","y","u","i","o","p"),
+            listOf("a","s","d","f","g","ğ","h","j","k","l"),
+            listOf("⇧","z","x","ç","c","v","b","n","m","⌫"),
+            listOf("?123",",","☻","space","ö","ş",".","↵")
         ) else listOf(
             listOf("1","2","3","4","5","6","7","8","9","0"),
             listOf("@","#","$","%","&","-","+","(",")","/"),
             listOf("=","*","\"","' ",":",";","!","?","⌫"),
             listOf("ABC",",","☻","space","_","‘","’",".","↵")
         )
-        rows.forEachIndexed { index, row -> addRow(root, row, if (index == 3) 43 else 44) { press(it) } }
+        rows.forEachIndexed { index, row -> addRow(root, row, if (index == 3) 56 else 55) { press(it) } }
         return root
     }
 
@@ -82,15 +82,15 @@ class UzbekKeyboardService : InputMethodService() {
         val line = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
         values.forEach { value ->
             val weight = when (value) {
-                "space" -> 2.8f
+                "space" -> 2.5f
                 "⇧", "⌫", "?123", "ABC", "↵" -> 1.35f
-                "☻" -> 0.9f
+                "☻" -> 0.95f
                 else -> 1f
             }
             val special = value in listOf("⇧","⌫","?123","ABC","↵","space","☻")
-            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 13 else 18) {
+            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20) {
                 action(value)
-            }, LinearLayout.LayoutParams(0, height, weight).apply { setMargins(2, 2, 2, 2) })
+            }, LinearLayout.LayoutParams(0, height, weight).apply { setMargins(2, 3, 2, 3) })
         }
         root.addView(line)
     }
@@ -98,11 +98,7 @@ class UzbekKeyboardService : InputMethodService() {
     private fun display(value: String): String {
         if (value == "space") return "O‘ZBEK"
         if (value == "☻") return "😊"
-        if (!(upper || capsLock)) return value
-        return when (value) {
-            "oʻ" -> "Oʻ"; "gʻ" -> "Gʻ"; "sh" -> "Sh"; "ch" -> "Ch"; "ng" -> "Ng"
-            else -> if (value.length == 1) value.uppercase() else value
-        }
+        return if (upper || capsLock) value.uppercase() else value
     }
 
     private fun press(value: String) {
@@ -120,8 +116,7 @@ class UzbekKeyboardService : InputMethodService() {
             "☻" -> emojiPage = true
             "space" -> { ic.commitText(" ", 1); if (!capsLock) upper = false }
             else -> {
-                val out = if (upper || capsLock) display(value) else value
-                ic.commitText(out, 1)
+                ic.commitText(if (upper || capsLock) value.uppercase() else value, 1)
                 if (!capsLock) upper = false
             }
         }
@@ -146,7 +141,7 @@ class UzbekKeyboardService : InputMethodService() {
             text = label; textSize = size.toFloat(); isAllCaps = false
             setTextColor(palette.text); typeface = Typeface.DEFAULT
             background = GradientDrawable().apply {
-                setColor(color); cornerRadius = 12f
+                setColor(color); cornerRadius = 13f
                 setStroke(1, if (themeIndex == 1) Color.rgb(75,82,96) else Color.rgb(215,221,231))
             }
             setPadding(0, 0, 0, 0); minHeight = 0; minimumHeight = 0
