@@ -97,11 +97,11 @@ class UzbekKeyboardService : InputMethodService() {
             }
             val special = value in listOf("⇧","⌫","?123","ABC","↵","space","☻")
             line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20, {
-                action(value)
-            }, {
                 if (value.length == 1 && value[0].isLetter()) showAlternates(it, value)
                 else if (value == "⌫") deleteWord()
-            }), LinearLayout.LayoutParams(0, dp(height), weight).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) })
+            }) {
+                action(value)
+            }, LinearLayout.LayoutParams(0, dp(height), weight).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) })
         }
         root.addView(line)
     }
@@ -149,7 +149,7 @@ class UzbekKeyboardService : InputMethodService() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun keyButton(label: String, color: Int, size: Int, click: () -> Unit, longClick: ((View) -> Unit)? = null) =
+    private fun keyButton(label: String, color: Int, size: Int, longClick: ((View) -> Unit)? = null, click: () -> Unit) =
         TextView(this).apply {
             text = label
             textSize = size.toFloat()
@@ -196,7 +196,7 @@ class UzbekKeyboardService : InputMethodService() {
         }
         val popup = PopupWindow(row, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true)
         choices.forEach { choice ->
-            row.addView(keyButton(if (upper || capsLock) choice.uppercase() else choice, palette.key, 19, {
+            row.addView(keyButton(if (upper || capsLock) choice.uppercase() else choice, palette.key, 19, null, {
                 currentInputConnection?.commitText(if (upper || capsLock) choice.uppercase() else choice, 1)
                 if (!capsLock) upper = false
                 popup.dismiss()
