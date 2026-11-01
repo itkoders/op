@@ -47,12 +47,12 @@ class UzbekKeyboardService : InputMethodService() {
             listOf("q","w","e","r","t","y","u","i","o","p"),
             listOf("a","s","d","f","g","ğ","h","j","k","l"),
             listOf("⇧","z","x","ç","c","v","b","n","m","⌫"),
-            listOf("?123",",","☻","ö","ş",".","↵")
+            listOf("?123",",","☻","space","ö","ş","↵")
         ) else listOf(
             listOf("1","2","3","4","5","6","7","8","9","0"),
             listOf("@","#","\$","%","&","-","+","(",")","/"),
             listOf("=","*","\"","' ",":",";","!","⌫"),
-            listOf("ABC",",","☻","‘","’",".","↵")
+            listOf("ABC",",","☻","space","‘","’","↵")
         )
         rows.forEachIndexed { index, row ->
             val line = LinearLayout(this).apply {
@@ -62,6 +62,7 @@ class UzbekKeyboardService : InputMethodService() {
             row.forEach { value ->
                 val weight = when (value) {
                     "⇧", "⌫", "?123", "ABC", "↵" -> 1.35f
+                    "space" -> 3.0f
                     "☻" -> 1.0f
                     else -> 1f
                 }
@@ -77,7 +78,7 @@ class UzbekKeyboardService : InputMethodService() {
     }
 
     private fun display(value: String): String =
-        if (upper && value.length == 1 && value[0].isLetter()) value.uppercase() else value
+        if (value == "space") "␣" else if (upper && value.length == 1 && value[0].isLetter()) value.uppercase() else value
 
     private fun press(value: String) {
         val ic = currentInputConnection ?: return
@@ -93,6 +94,7 @@ class UzbekKeyboardService : InputMethodService() {
             "?123" -> symbols = true
             "ABC" -> symbols = false
             "☻" -> ic.commitText("😊", 1)
+            "space" -> ic.commitText(" ", 1)
             "," -> ic.commitText(",", 1)
             "." -> ic.commitText(".", 1)
             else -> {
