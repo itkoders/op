@@ -8,8 +8,8 @@ import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
@@ -37,45 +37,48 @@ class UzbekKeyboardService : InputMethodService() {
 
     private fun buildKeyboard(): View {
         val p = palette
+        val density = resources.displayMetrics.density
+        val keyboardHeightDp = (resources.displayMetrics.heightPixels / density * 0.38f).toInt().coerceIn(280, 320)
+        val rowHeight = ((keyboardHeightDp - 82) / 4).coerceIn(48, 60)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(3, 7, 3, 10)
+            setPadding(dp(3), dp(5), dp(3), dp(7))
             setBackgroundColor(p.background)
-            minimumHeight = (390 * resources.displayMetrics.density).toInt()
+            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(keyboardHeightDp))
         }
         val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         toolbar.addView(TextView(this).apply {
             text = "O‘ZBEK KEYBOARD  •  " + listOf("CLASSIC","DARK","NEON","MINT")[themeIndex]
             textSize = 12f; setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL; setPadding(8, 0, 0, 0)
-        }, LinearLayout.LayoutParams(0, 50, 1f))
-        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(50, 48))
-        toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(48, 42))
+        }, LinearLayout.LayoutParams(0, dp(42), 1f))
+        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(dp(46), dp(44)))
+        toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(dp(46), dp(44)))
         toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 20) {
             upper = !upper
             refresh()
-        }, LinearLayout.LayoutParams(48, 42))
+        }, LinearLayout.LayoutParams(dp(46), dp(44)))
         root.addView(toolbar)
 
         if (emojiPage) {
             val emojis = listOf("😀","😂","🥰","😍","😎","😭","😊","😘","👍","🙏","❤️","🔥","🎉","✨","💯","🤝","👏","💙","🌹","🤣")
-            emojis.chunked(5).forEach { row -> addRow(root, row, 66) { press(it) } }
-            addRow(root, listOf("ABC","space","⌫","↵"), 68) { press(it) }
+            emojis.chunked(5).forEach { row -> addRow(root, row, rowHeight) { press(it) } }
+            addRow(root, listOf("ABC","space","⌫","↵"), rowHeight) { press(it) }
             return root
         }
 
         val rows = if (!symbols) listOf(
             listOf("q","w","e","r","t","y","u","i","o","p"),
-            listOf("a","s","d","f","g","ğ","h","j","k","l"),
-            listOf("⇧","z","x","ç","c","v","b","n","m","⌫"),
-            listOf("?123",",","☻","space","ö","ş",".","↵")
+            listOf("a","s","d","f","g","h","j","k","l"),
+            listOf("⇧","z","x","c","v","b","n","m","⌫"),
+            listOf("?123",",","☻","space","ğ","ö","ş","ç","↵")
         ) else listOf(
             listOf("1","2","3","4","5","6","7","8","9","0"),
             listOf("@","#","$","%","&","-","+","(",")","/"),
             listOf("=","*","\"","' ",":",";","!","?","⌫"),
             listOf("ABC",",","☻","space","_","‘","’",".","↵")
         )
-        rows.forEachIndexed { index, row -> addRow(root, row, if (index == 3) 68 else 66) { press(it) } }
+        rows.forEach { row -> addRow(root, row, rowHeight) { press(it) } }
         return root
     }
 
@@ -91,7 +94,7 @@ class UzbekKeyboardService : InputMethodService() {
             val special = value in listOf("⇧","⌫","?123","ABC","↵","space","☻")
             line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20) {
                 action(value)
-            }, LinearLayout.LayoutParams(0, height, weight).apply { setMargins(2, 3, 2, 3) })
+            }, LinearLayout.LayoutParams(0, dp(height), weight).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) })
         }
         root.addView(line)
     }
@@ -137,16 +140,24 @@ class UzbekKeyboardService : InputMethodService() {
     }
     private fun refresh() { setInputView(buildKeyboard()) }
 
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
     private fun keyButton(label: String, color: Int, size: Int, click: () -> Unit) =
-        Button(this).apply {
-            text = label; textSize = size.toFloat(); isAllCaps = false
-            setTextColor(palette.text); typeface = Typeface.DEFAULT
+        TextView(this).apply {
+            text = label
+            textSize = size.toFloat()
+            gravity = Gravity.CENTER
+            setTextColor(palette.text)
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            isClickable = true
+            isFocusable = true
+            minHeight = dp(48)
+            setPadding(dp(2), 0, dp(2), 0)
             background = GradientDrawable().apply {
-                setColor(color); cornerRadius = 13f
-                setStroke(1, if (themeIndex == 1) Color.rgb(75,82,96) else Color.rgb(215,221,231))
+                setColor(color)
+                cornerRadius = dp(11).toFloat()
+                setStroke(dp(1), if (themeIndex == 1) Color.rgb(75,82,96) else Color.rgb(215,221,231))
             }
-            setPadding(0, 0, 0, 0); minHeight = 0; minimumHeight = 0
-            stateListAnimator = null
             setOnClickListener { click() }
         }
 }
