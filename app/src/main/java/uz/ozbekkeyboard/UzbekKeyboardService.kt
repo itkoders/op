@@ -39,16 +39,17 @@ class UzbekKeyboardService : InputMethodService() {
         val p = palette
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(3, 5, 3, 8)
+            setPadding(3, 7, 3, 10)
             setBackgroundColor(p.background)
+            minimumHeight = (390 * resources.displayMetrics.density).toInt()
         }
         val toolbar = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         toolbar.addView(TextView(this).apply {
             text = "O‘ZBEK KEYBOARD  •  " + listOf("CLASSIC","DARK","NEON","MINT")[themeIndex]
             textSize = 12f; setTextColor(p.accent); typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER_VERTICAL; setPadding(8, 0, 0, 0)
-        }, LinearLayout.LayoutParams(0, 44, 1f))
-        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(48, 42))
+        }, LinearLayout.LayoutParams(0, 50, 1f))
+        toolbar.addView(keyButton("📋", p.special, 16) { pasteClipboard() }, LinearLayout.LayoutParams(50, 48))
         toolbar.addView(keyButton("🎨", p.special, 17) { cycleTheme() }, LinearLayout.LayoutParams(48, 42))
         toolbar.addView(keyButton(if (upper || capsLock) "⇧" else "↑", p.special, 20) {
             upper = !upper
@@ -58,8 +59,8 @@ class UzbekKeyboardService : InputMethodService() {
 
         if (emojiPage) {
             val emojis = listOf("😀","😂","🥰","😍","😎","😭","😊","😘","👍","🙏","❤️","🔥","🎉","✨","💯","🤝","👏","💙","🌹","🤣")
-            emojis.chunked(5).forEach { row -> addRow(root, row, 54) { press(it) } }
-            addRow(root, listOf("ABC","space","⌫","↵"), 56) { press(it) }
+            emojis.chunked(5).forEach { row -> addRow(root, row, 66) { press(it) } }
+            addRow(root, listOf("ABC","space","⌫","↵"), 68) { press(it) }
             return root
         }
 
@@ -74,7 +75,7 @@ class UzbekKeyboardService : InputMethodService() {
             listOf("=","*","\"","' ",":",";","!","?","⌫"),
             listOf("ABC",",","☻","space","_","‘","’",".","↵")
         )
-        rows.forEachIndexed { index, row -> addRow(root, row, if (index == 3) 56 else 55) { press(it) } }
+        rows.forEachIndexed { index, row -> addRow(root, row, if (index == 3) 68 else 66) { press(it) } }
         return root
     }
 
