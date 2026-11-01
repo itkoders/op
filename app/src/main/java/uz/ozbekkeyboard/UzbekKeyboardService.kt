@@ -40,8 +40,9 @@ class UzbekKeyboardService : InputMethodService() {
     private fun buildKeyboard(): View {
         val p = palette
         val density = resources.displayMetrics.density
-        val keyboardHeightDp = (resources.displayMetrics.heightPixels / density * 0.38f).toInt().coerceIn(280, 320)
-        val rowHeight = ((keyboardHeightDp - 82) / 4).coerceIn(48, 60)
+        val screenHeightDp = resources.displayMetrics.heightPixels / density
+        val keyboardHeightDp = (screenHeightDp * 0.38f).toInt().coerceIn(250, 310)
+        val rowHeight = ((keyboardHeightDp - 72) / 4).coerceIn(44, 58)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(3), dp(5), dp(3), dp(7))
@@ -96,7 +97,12 @@ class UzbekKeyboardService : InputMethodService() {
                 else -> 1f
             }
             val special = value in listOf("⇧","⌫","?123","ABC","↵","space","☻")
-            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) 14 else 20, {
+            val screenWidthDp = resources.displayMetrics.widthPixels / resources.displayMetrics.density
+            val totalWeight = values.sumOf { v -> when (v) { "space" -> 2.5; "⇧", "⌫", "?123", "ABC", "↵" -> 1.35; "☻" -> 0.95; else -> 1.0 } }
+            val availableWidth = screenWidthDp - 14.0
+            val keyWidth = availableWidth * weight / totalWeight
+            val fontSize = (keyWidth * 0.48).toInt().coerceIn(15, 22)
+            line.addView(keyButton(display(value), if (special) palette.special else palette.key, if (value.length > 2) fontSize.coerceAtMost(16) else fontSize, {
                 if (value.length == 1 && value[0].isLetter()) showAlternates(it, value)
                 else if (value == "⌫") deleteWord()
             }) {
@@ -158,7 +164,7 @@ class UzbekKeyboardService : InputMethodService() {
             typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
             isClickable = true
             isFocusable = true
-            minHeight = dp(48)
+            minHeight = dp(44)
             setPadding(dp(2), 0, dp(2), 0)
             background = GradientDrawable().apply {
                 setColor(color)
